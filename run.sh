@@ -1,7 +1,7 @@
 #!/bin/bash
 #set -e
 if [ -z "$CHISEL_KEY" ] || [ "$CHISEL_KEY" == "**chisel-key**" ]; then
-	CHISEL_KEY="$(head /dev/urandom | tr -dc 'A-Za-z0-9~!@#%^&*()_+-=[]{}|;:,.<>?' | head -c 16)"
+	CHISEL_KEY="$(head /dev/urandom | tr -dc 'A-Za-z0-9' | head -c 32)"
 fi
 echo "chisel key: $CHISEL_KEY"
 sed -i "s/RG_CHISEL_KEY/$CHISEL_KEY/g" /etc/supervisor/conf.d/chisel.conf
@@ -14,7 +14,7 @@ if [ ! -z "$SSH_PUB_KEY" ] && [ "$SSH_PUB_KEY" != "**ssh-pub-key**" ]; then
 	chmod 600 ${HOME}/.ssh/authorized_keys
 else
 	if [ -z "$ROOT_PASS" ] || [ "$ROOT_PASS" == "**root-pass**" ]; then
-		ROOT_PASS="$(head /dev/urandom | tr -dc 'A-Za-z0-9~!@#%^&*()_+-=[]{}|;:,.<>?' | head -c 16)"
+		ROOT_PASS="$(head /dev/urandom | tr -dc 'A-Za-z0-9~!@#%^&()_+=[]{}|;:,.<>?' | head -c 16)"
 	fi
 	echo "initial password: $ROOT_PASS"
 	echo "root:$ROOT_PASS" | chpasswd
