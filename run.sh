@@ -23,7 +23,13 @@ echo "${CRON_RUN_TIME} /run_cron.sh | tee -a /proc/1/fd/1" | crontab
 if [ ! -z "${SSH_PUB_KEY}" ] && [ "${SSH_PUB_KEY}" != "**ssh-pub-key**" ]; then
 	mkdir -p ${HOME}/.ssh
 	chmod 700 ${HOME}/.ssh
-	echo "${SSH_PUB_KEY}" > ${HOME}/.ssh/authorized_keys
+	oIFS=$IFS
+	IFS=";"
+	for key in ${SSH_PUB_KEY}; do
+		echo "SSH_PUB_KEY: $key"
+		echo "$key" >> ${HOME}/.ssh/authorized_keys
+	done
+	IFS=$oIFS
 	chmod 600 ${HOME}/.ssh/authorized_keys
 else
 	if [ -z "${ROOT_PASS}" ] || [ "${ROOT_PASS}" == "**root-pass**" ]; then
