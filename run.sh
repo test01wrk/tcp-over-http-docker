@@ -31,15 +31,17 @@ if [ ! -z "${SSH_PUB_KEY}" ] && [ "${SSH_PUB_KEY}" != "**ssh-pub-key**" ]; then
 	done
 	IFS=$oIFS
 	chmod 600 ${HOME}/.ssh/authorized_keys
+	sed -i -r 's/^#?PasswordAuthentication .*$/PasswordAuthentication no/g' /etc/ssh/sshd_config
+	sed -i -r 's/^#?UsePAM .*$/UsePAM no/g' /etc/ssh/sshd_config
 else
 	if [ -z "${ROOT_PASS}" ] || [ "${ROOT_PASS}" == "**root-pass**" ]; then
 		ROOT_PASS="$(head /dev/urandom | tr -dc 'A-Za-z0-9~!@#%^&()_+=[]{}|;:,.<>?' | head -c 16)"
 	fi
 	echo "ROOT_PASS: ${ROOT_PASS}"
 	echo "root:${ROOT_PASS}" | chpasswd
-	sed -i 's/^PermitRootLogin without-password/PermitRootLogin yes/' /etc/ssh/sshd_config
+	sed -i -r 's/^#?PermitRootLogin .*$/PermitRootLogin yes/' /etc/ssh/sshd_config
 fi
 #sed -i 's/^Port 22$/Port 2222/' /etc/ssh/sshd_config
-sed -i 's/^#ListenAddress ::$/ListenAddress ::1/' /etc/ssh/sshd_config
-sed -i 's/^#ListenAddress 0.0.0.0$/ListenAddress 127.0.0.1/' /etc/ssh/sshd_config
+sed -i -r 's/^#?ListenAddress .*$/ListenAddress ::1/' /etc/ssh/sshd_config
+sed -i -r 's/^#?ListenAddress .*$/ListenAddress 127.0.0.1/' /etc/ssh/sshd_config
 /usr/sbin/sshd -D
