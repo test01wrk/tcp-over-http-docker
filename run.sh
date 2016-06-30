@@ -5,6 +5,11 @@ if [ -z "${CHISEL_KEY}" ] || [ "${CHISEL_KEY}" == "**chisel-key**" ]; then
 fi
 echo "CHISEL_KEY: ${CHISEL_KEY}"
 sed -i "s/RG_CHISEL_KEY/${CHISEL_KEY}/g" /etc/supervisor/conf.d/chisel.conf
+if [ -z "${PROXY_URL}" ] || [ "${PROXY_URL}" == "**proxy-url**" ]; then
+	PROXY_URL="https://github.com"
+fi
+echo "PROXY_URL: ${PROXY_URL}"
+sed -i "s|RG_PROXY_URL|${PROXY_URL}|g" /etc/supervisor/conf.d/chisel.conf
 service supervisor start
 
 /usr/sbin/cron
