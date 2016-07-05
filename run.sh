@@ -17,7 +17,8 @@ echo '#!/bin/bash' > /run_cron.sh && chmod a+x /run_cron.sh
 echo 'echo "cron job run at $(date)"' >> /run_cron.sh
 echo "HEARTBEAT_URL: ${HEARTBEAT_URL}"
 if [ ! -z "${HEARTBEAT_URL}" ] || [ "${HEARTBEAT_URL}" == "**heartbeat-url**" ]; then
-    echo "wget -q -O /dev/null ${HEARTBEAT_URL} && echo 'heartbeat ok'" >> /run_cron.sh
+	echo "wget -q -U 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:47.0) Gecko/20100101 Firefox/47.0' \
+			-O - ${HEARTBEAT_URL} && echo && echo 'heartbeat ok'" >> /run_cron.sh
 fi
 if [ -z "${CRON_RUN_TIME}" ] || [ "${CRON_RUN_TIME}" == "**cron-run-time**" ]; then
 	CRON_RUN_TIME='0 * * * *'
