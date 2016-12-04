@@ -10,6 +10,25 @@ if [ -z "${PROXY_URL}" ] || [ "${PROXY_URL}" == "**proxy-url**" ]; then
 fi
 echo "PROXY_URL: ${PROXY_URL}"
 sed -i "s|RG_PROXY_URL|${PROXY_URL}|g" /etc/supervisor/conf.d/chisel.conf
+
+if [ -z "${HAP_BIND_ADDR}" ] || [ "${HAP_BIND_ADDR}" == "**hap-bind-addr**" ]; then
+	HAP_BIND_ADDR="127.0.0.1:10086"
+fi
+echo "HAP_BIND_ADDR: ${HAP_BIND_ADDR}"
+sed -i "s|RG_HAP_BIND_ADDR|${HAP_BIND_ADDR}|g" /etc/haproxy/haproxy.cfg
+sed -r -i "/^\s+server/d" /etc/haproxy/haproxy.cfg
+sed -r -i "/^\s*$/d" /etc/haproxy/haproxy.cfg
+if [ ! -z "${HAP_BE_SERVER}" ] && [ "${HAP_BE_SERVER}" != "**hap-be-server**" ]; then
+	oIFS=$IFS
+	IFS=";"
+	serverCount=0
+	for server in ${HAP_BE_SERVER}; do
+		echo "add haproxy backend server: $server"
+		echo "    server svr_$(( ++serverCount )) $server" >> /etc/haproxy/haproxy.cfg
+	done
+	IFS=$oIFS
+fi
+
 service supervisor start
 
 /usr/sbin/cron
