@@ -1,31 +1,5 @@
 #!/bin/bash
 #set -e
-if [ -z "${CHISEL_KEY}" ] || [ "${CHISEL_KEY}" == "**chisel-key**" ]; then
-	CHISEL_KEY="$(head /dev/urandom | tr -dc 'A-Za-z0-9' | head -c 32)"
-fi
-echo "CHISEL_KEY: ${CHISEL_KEY}"
-sed -i "s/RG_CHISEL_KEY/${CHISEL_KEY}/g" /etc/supervisor/conf.d/chisel.conf
-if [ -z "${PROXY_URL}" ] || [ "${PROXY_URL}" == "**proxy-url**" ]; then
-	PROXY_URL="https://github.com"
-fi
-echo "PROXY_URL: ${PROXY_URL}"
-sed -i "s|RG_PROXY_URL|${PROXY_URL}|g" /etc/supervisor/conf.d/chisel.conf
-service supervisor start
-
-/usr/sbin/cron
-echo '#!/bin/bash' > /run_cron.sh && chmod a+x /run_cron.sh
-echo 'echo "cron job run at $(date)"' >> /run_cron.sh
-echo "HEARTBEAT_URL: ${HEARTBEAT_URL}"
-if [ ! -z "${HEARTBEAT_URL}" ] || [ "${HEARTBEAT_URL}" == "**heartbeat-url**" ]; then
-	echo "wget -q -U 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:47.0) Gecko/20100101 Firefox/47.0' \
-			-O - ${HEARTBEAT_URL} && echo && echo 'heartbeat ok'" >> /run_cron.sh
-fi
-if [ -z "${CRON_RUN_TIME}" ] || [ "${CRON_RUN_TIME}" == "**cron-run-time**" ]; then
-	CRON_RUN_TIME='0 * * * *'
-fi
-echo "CRON_RUN_TIME: ${CRON_RUN_TIME}"
-echo "${CRON_RUN_TIME} /run_cron.sh | tee -a /proc/1/fd/1" | crontab
-
 if [ ! -z "${SSH_PUB_KEY}" ] && [ "${SSH_PUB_KEY}" != "**ssh-pub-key**" ]; then
 	mkdir -p ${HOME}/.ssh
 	chmod 700 ${HOME}/.ssh
@@ -47,7 +21,39 @@ else
 	echo "root:${ROOT_PASS}" | chpasswd
 	sed -i -r 's/^#?PermitRootLogin .*$/PermitRootLogin yes/' /etc/ssh/sshd_config
 fi
+
+
+if [ ! -z "${PROXY_USER_AND_PWD}" ] && [ "${PROXY_USER_AND_PWD}" != "**proxy-user-and-pwd**" ]; then
+	PROXY_USER="$(echo ${PROXY_USER_AND_PWD} | cut -d' ' -f1)"
+	PROXY_PWD="$(echo ${PROXY_USER_AND_PWD} | cut -d' ' -f2)"
+else
+	PROXY_USER="$(head /dev/urandom | tr -dc 'A-Za-z0-9' | head -c 16)"
+	PROXY_PWD="$(head /dev/urandom | tr -dc 'A-Za-z0-9~!@#%^&()_+=[]{}|;:,.<>?' | head -c 16)"
+fi
+echo "PROXY_USER: $PROXY_USER"
+echo "PROXY_PWD: $PROXY_PWD"
+htpasswd -bc /etc/squid3/passwords "$PROXY_USER" "$PROXY_PWD"
+/usr/sbin/squid3
+
+if [ ! -z "${DNSMASQ_ADDRESS}" ] && [ "${DNSMASQ_ADDRESS}" != "**dnsmasq-address**" ]; then
+	oIFS=$IFS
+	IFS=";"
+	for addresspair in ${DNSMASQ_ADDRESS}; do
+		address="$(echo ${addresspair} | cut -d' ' -f1)"
+		resolve="$(echo ${addresspair} | cut -d' ' -f2)"
+		if [ ! -z "$(echo $resolve | egrep '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$')" ]; then
+			echo "add dnsmasq address: $address $resolve"
+			sed -i -r "s|^#==Address==$|&\naddress=/$address/$resolve|" /etc/dnsmasq.conf
+		fi
+	done
+	IFS=$oIFS
+fi
+echo -e "nameserver 127.0.0.1\n$(sed -r 's/^([^#]+)$/#\1/g' /etc/resolv.conf)" > /etc/resolv.conf
+/etc/init.d/dnsmasq restart
+
 #sed -i 's/^Port 22$/Port 2222/' /etc/ssh/sshd_config
-sed -i -r 's/^#?ListenAddress .*$/ListenAddress ::1/' /etc/ssh/sshd_config
-sed -i -r 's/^#?ListenAddress .*$/ListenAddress 127.0.0.1/' /etc/ssh/sshd_config
+# sed -i -r 's/^#?ListenAddress .*$/ListenAddress ::1/' /etc/ssh/sshd_config
+# sed -i -r 's/^#?ListenAddress .*$/ListenAddress 127.0.0.1/' /etc/ssh/sshd_config
+sed -i -r '/^\s*GatewayPorts /d' /etc/ssh/sshd_config
+echo "GatewayPorts clientspecified" >>  /etc/ssh/sshd_config
 /usr/sbin/sshd -D
