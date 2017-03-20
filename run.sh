@@ -33,7 +33,7 @@ fi
 echo "PROXY_USER: $PROXY_USER"
 echo "PROXY_PWD: $PROXY_PWD"
 htpasswd -bc /etc/squid3/passwords "$PROXY_USER" "$PROXY_PWD"
-/usr/sbin/squid3
+#/usr/sbin/squid3
 
 if [ ! -z "${DNSMASQ_ADDRESS}" ] && [ "${DNSMASQ_ADDRESS}" != "**dnsmasq-address**" ]; then
 	oIFS=$IFS
